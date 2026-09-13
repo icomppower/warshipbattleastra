@@ -1,0 +1,17 @@
+import assert from 'node:assert/strict';
+import {CLASSES,forward,headingTo,segmentHitsShip,damageRoll,shellPosition,canMountFire,leadPoint,travelTime} from './dist/mechanics.js';
+const ship={x:0,z:0,heading:0,spec:CLASSES.battleship,speed:20};
+assert.equal(segmentHitsShip({x:-100,y:4,z:0},{x:100,y:4,z:0},ship),true,'Fast projectile intersects broadside');
+assert.equal(segmentHitsShip({x:-100,y:30,z:0},{x:100,y:30,z:0},ship),false,'Projectile above hull misses');
+assert.equal(segmentHitsShip({x:30,y:4,z:-100},{x:30,y:4,z:100},ship),false,'Parallel near miss');
+assert.equal(segmentHitsShip({x:0,y:4,z:-100},{x:0,y:4,z:100},{...ship,heading:Math.PI/2}),true,'Rotated hull intersection');
+assert.equal(canMountFire(0,Math.PI,3),false,'Forward guns cannot fire through superstructure');
+assert.equal(canMountFire(2,0,3),false,'Rear turret cannot shoot through bow');
+assert.equal(canMountFire(0,Math.PI/2,3),true);assert.equal(canMountFire(2,Math.PI/2,3),true);
+const bow=damageRoll('ap',2500,{x:0,z:-100},ship,()=>.1),side=damageRoll('ap',2500,{x:100,z:0},ship,()=>.1);
+assert(bow.amount<side.amount,'Angling reduces AP damage');assert.equal(side.kind,'CITADEL HIT');
+assert.equal(damageRoll('torpedo',9600,{x:0,z:0},ship,()=>.5).flood,true);
+const p=shellPosition({x:0,y:5,z:0},{x:100,z:0},1,2);assert(p.y>30);assert.equal(p.x,50);
+assert.equal(shellPosition({x:0,y:5,z:0},{x:100,z:0},2,2).y,0);
+assert(leadPoint(ship,{x:0,z:500}).z<ship.z,'Aim lead tracks ship motion');
+console.log('PASS: projectile sweep, hull rotation, misses, armor, torpedo flooding, ballistics, fire arcs, lead calculation');

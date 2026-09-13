@@ -1,0 +1,4 @@
+node_modules
+.sites-runtime/
+*.blend1
+__pycache__/
