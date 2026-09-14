@@ -4,7 +4,7 @@ An original single-player browser naval combat game inspired by fleet-action gam
 
 ## Play
 
-Hosted game: https://iron-tide.gundamxx2.chatgpt.site (access is controlled by the site owner).
+Play now: https://icomppower.github.io/warshipbattleastra/ (GitHub Pages, published from `dist/` by `.github/workflows/pages.yml`).
 Serve `dist/` with any static HTTP server. For example, from this directory:
 
 ```sh
@@ -48,11 +48,17 @@ The script also renders `blender/fleet-preview.png`. Terrain, shaders, particles
 - `dist/index.html`, `dist/style.css`: game interface and controls.
 - `blender/build_fleet.py`: reproducible asset authoring.
 - `verify.mjs`: targeted mechanics checks; run `node verify.mjs`.
+- `playtest.mjs`: headless browser playtest; serve `dist/` then `node playtest.mjs http://localhost:8123` (add `--mobile` for a 390x844 reachability pass). Requires `npm i puppeteer`.
+- `window.__iron.snap()`: read-only runtime state snapshot used by the playtest for numeric assertions.
 - `dist/vendor/three/LICENSE`: Three.js MIT license.
 
 This is an arcade prototype with compressed range and time scales, simplified armor and damage models, and fictional ships. It is not a historically accurate naval simulator or the commercial World of Warships game. No multiplayer, aircraft simulation, progression economy, or server persistence is included.
 
 ## Validation performed
-The mechanics checks pass. All three GLBs were parsed with the same GLTFLoader used by the game, and their turret counts, exact mesh dimensions and HTML control references were checked. The fleet was rendered in Blender and visually inspected. Browser playtesting and WebMCP runtime validation were not available in this run.
+The mechanics checks pass. All three GLBs were parsed with the same GLTFLoader used by the game, and their turret counts, exact mesh dimensions and HTML control references were checked. The fleet was rendered in Blender and visually inspected.
+
+Headless browser playtesting (`playtest.mjs`, Chrome/SwiftShader) now covers: asset load with no failed requests and no console errors, WebGL2 context, ship selection and battle start, eight ships spawned with turret mounts, throttle and rudder moving the ship through the world, main battery shells in flight, damage accumulating across a sustained battle, capture and score progression, the defeat path with its result screen, and a 390x844 pass that hit-tests the start button and every touch control. WebMCP runtime validation was not exercised.
+
+Balance note: the battle is unforgiving. A player who does not fight back loses their ship in roughly 60-70 seconds against the five-ship enemy division, and the two allied AI ships are usually sunk in that same window.
 
 The fleet for this version was generated through Blender 4.3.0's `bpy` Python package using Python 3.11 and NumPy 1.26.4. The standalone Blender command above is the normal local rebuild path.
