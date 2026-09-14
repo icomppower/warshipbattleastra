@@ -56,6 +56,16 @@ await page.keyboard.down('ArrowLeft'); await new Promise(r=>setTimeout(r,2500));
 const camKeys = await page.evaluate(()=>window.__iron.snap().cam.yaw);
 ok(Math.abs(camKeys-camDrag.yaw)>1.5, `arrow keys rotate the camera at a usable rate (${camDrag.yaw} -> ${camKeys} rad in 2.5s)`);
 
+// 2c. the camera rides the hull: a turn must not rotate the ship out from under the view
+const bearingOffBow = ()=>page.evaluate(()=>{const q=window.__iron.snap();const dx=q.cam.px-q.player.x,dz=q.cam.pz-q.player.z;const bearing=Math.atan2(dx,dz);return {heading:q.player.heading,offBow:Math.atan2(Math.sin(bearing-q.player.heading),Math.cos(bearing-q.player.heading))};});
+await page.keyboard.press('KeyW'); await new Promise(r=>setTimeout(r,1500));
+const turn0 = await bearingOffBow();
+await page.keyboard.down('KeyD'); await new Promise(r=>setTimeout(r,6000)); await page.keyboard.up('KeyD');
+const turn1 = await bearingOffBow();
+const turned = Math.abs(turn1.heading-turn0.heading), drifted = Math.abs(turn1.offBow-turn0.offBow);
+ok(turned>0.15, `the ship actually turned during the camera-follow check (${turned.toFixed(2)} rad)`);
+ok(drifted<turned*0.35, `camera follows the hull through a turn (ship ${turned.toFixed(2)} rad, view drifted only ${drifted.toFixed(3)} rad off the bow)`);
+
 // 3. sustained loop: throttle up, steer, fire for 60s of sim
 await page.keyboard.down('KeyW'); await new Promise(r=>setTimeout(r,400)); await page.keyboard.up('KeyW');
 await page.keyboard.down('KeyW'); await new Promise(r=>setTimeout(r,400)); await page.keyboard.up('KeyW');
