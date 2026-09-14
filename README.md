@@ -16,7 +16,8 @@ Open http://localhost:8080. WebGL2 is required. All runtime assets, including Th
 ## Game
 - Three original playable classes: Vanguard battleship, Resolute heavy cruiser, Tempest destroyer.
 - Three allied ships against five AI opponents in a 10-minute island battle.
-- Win by sinking all enemies, reaching 1,000 points, or leading when time expires. Losing your own ship ends the battle.
+- Win by sinking all five enemy ships, or by holding the higher score when time expires. Losing your own ship ends the battle. Score comes from damage dealt and ships sunk.
+- The enemy division holds fire for the first 22 seconds while the fleets close, its gunnery carries a lead error of roughly 4% of range, and it spreads fire across targets rather than focusing whoever is nearest.
 - Three-dimensional Blender ship assets with articulated main gun turrets, barbette armor, barrels and muzzles, detailed bridges, glazing, tripod masts, radar grids, rigging, funnels, AA mounts, secondary gun fittings, safety railings, lifeboats, davits, bollards, capstans, anchor fittings and teak decks.
 - Main guns use independent turret traverse, firing arcs and reload timers. Secondary/AA fittings are visual detail, not additional simulated weapon systems.
 - AP penetration, broadside citadel hits, armor-angle ricochets, HE fires, torpedo spreads and flooding.
@@ -27,7 +28,7 @@ Open http://localhost:8080. WebGL2 is required. All runtime assets, including Th
 - Camera orbit, optical zoom, mouse aiming, target lead marker, minimap, combat HUD, pause and battle results. Touch controls are available; desktop mouse and keyboard provide the best experience.
 
 ## Controls
-W/S changes throttle in quarter steps; A/D controls rudder. Left-click or Space fires at the mouse's water-surface aim point. Right-drag or left/right arrows turns the camera. Wheel adjusts camera distance. Shift toggles binoculars. X cycles a selected target and turns the camera toward it. C recenters the camera. 1/2/3 selects AP/HE/torpedoes. R activates repair and T activates damage control. Escape pauses.
+W/S changes throttle in quarter steps; A/D controls rudder. Left-click or Space fires at the mouse's water-surface aim point. Dragging anywhere on the sea - any mouse button, or one finger on a touch screen - rotates the camera through a full 360 degrees; a press that never moves 8 pixels fires instead of rotating. The left/right arrows also turn the camera. Wheel adjusts camera distance. Shift toggles binoculars. X cycles a selected target and turns the camera toward it. C recenters the camera. 1/2/3 selects AP/HE/torpedoes. R activates repair and T activates damage control. Escape pauses.
 
 Use the lead marker to estimate where moving targets will be when shells arrive. Turning your broadside toward a target lets more turrets fire but exposes your armor. Torpedoes travel much slower than shells. Hold sector A to accumulate points.
 
@@ -59,6 +60,6 @@ The mechanics checks pass. All three GLBs were parsed with the same GLTFLoader u
 
 Headless browser playtesting (`playtest.mjs`, Chrome/SwiftShader) now covers: asset load with no failed requests and no console errors, WebGL2 context, ship selection and battle start, eight ships spawned with turret mounts, throttle and rudder moving the ship through the world, main battery shells in flight, damage accumulating across a sustained battle, capture and score progression, the defeat path with its result screen, and a 390x844 pass that hit-tests the start button and every touch control. WebMCP runtime validation was not exercised.
 
-Balance note: the battle is unforgiving. A player who does not fight back loses their ship in roughly 60-70 seconds against the five-ship enemy division, and the two allied AI ships are usually sunk in that same window.
+Balance: the opening was retuned on 2026-09-13 after playtesting. Enemy gunnery no longer fires a perfect firing solution, salvo cadence is roughly halved, the enemy holds fire while the fleets close, and the player's hull takes 55% of the damage an AI hull of the same class would (`PLAYER_DAMAGE_TAKEN` in `dist/game.js`). A player who does nothing at all still loses, but takes their first damage around 40 seconds rather than 13, and survives past 90 seconds rather than 39. AI against AI is unchanged and still symmetric.
 
 The fleet for this version was generated through Blender 4.3.0's `bpy` Python package using Python 3.11 and NumPy 1.26.4. The standalone Blender command above is the normal local rebuild path.

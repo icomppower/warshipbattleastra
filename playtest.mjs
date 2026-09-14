@@ -34,6 +34,28 @@ let s = await page.evaluate(()=>window.__iron.snap());
 ok(s.player && s.player.kind==='cruiser', `battle started as chosen class (${s.player?.kind})`);
 ok(s.ships.length===8, `8 ships spawned (${s.ships.length})`);
 ok(s.ships.every(x=>x.mounts>0), 'every ship has turret mounts: '+s.ships.map(x=>x.mounts).join(','));
+// 2b. camera: drag rotates a full turn, and the view can sit astern
+const cam0 = (await page.evaluate(()=>window.__iron.snap())).cam;
+const vw = await page.evaluate(()=>innerWidth), vh = await page.evaluate(()=>innerHeight);
+const cx = Math.round(vw/2), cy = Math.round(vh*0.4), step = Math.round(vw/14);
+if(MOBILE){ // one finger on the sea, the only camera control a phone has
+  const t = await page.createCDPSession();
+  await t.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x:cx,y:cy}]});
+  for(let i=1;i<=10;i++){ await t.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:cx-i*step,y:cy}]}); await new Promise(r=>setTimeout(r,60)); }
+  await t.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+} else {
+  await page.mouse.move(cx,cy); await page.mouse.down();
+  for(let i=0;i<10;i++){ await page.mouse.move(cx-i*70,cy); await new Promise(r=>setTimeout(r,60)); }
+  await page.mouse.up();
+}
+await new Promise(r=>setTimeout(r,250));
+const camDrag = await page.evaluate(()=>{const q=window.__iron.snap();const dx=q.cam.px-q.player.x,dz=q.cam.pz-q.player.z;const bearing=Math.atan2(dx,dz);return {yaw:q.cam.yaw,elev:q.cam.elev,offBow:Math.abs(Math.atan2(Math.sin(bearing-q.player.heading),Math.cos(bearing-q.player.heading)))};});
+ok(Math.abs(camDrag.yaw-cam0.yaw)>0.8, `drag rotates the camera (${cam0.yaw} -> ${camDrag.yaw} rad)`);
+ok(camDrag.offBow>0.8, `camera can sit abaft the beam, i.e. look backward (${camDrag.offBow.toFixed(2)} rad off the bow)`);
+await page.keyboard.down('ArrowLeft'); await new Promise(r=>setTimeout(r,2500)); await page.keyboard.up('ArrowLeft');
+const camKeys = await page.evaluate(()=>window.__iron.snap().cam.yaw);
+ok(Math.abs(camKeys-camDrag.yaw)>1.5, `arrow keys rotate the camera at a usable rate (${camDrag.yaw} -> ${camKeys} rad in 2.5s)`);
+
 // 3. sustained loop: throttle up, steer, fire for 60s of sim
 await page.keyboard.down('KeyW'); await new Promise(r=>setTimeout(r,400)); await page.keyboard.up('KeyW');
 await page.keyboard.down('KeyW'); await new Promise(r=>setTimeout(r,400)); await page.keyboard.up('KeyW');
@@ -61,7 +83,10 @@ const dmgTaken = start.ships.reduce((a,x)=>a+x.hp,0) - end.ships.reduce((a,x)=>a
 ok(dmgTaken>0, `combat inflicts damage over 90s (total hp lost ${dmgTaken})`);
 const ended = end.mode!=='battle';
 ok(ended || end.elapsed>start.elapsed+60, `battle clock ran ${(end.elapsed-start.elapsed).toFixed(1)}s of sim${ended?' before the idle bot was sunk':' in 90s wall'}`);
-ok(end.blueScore!==start.blueScore||end.redScore!==start.redScore||end.capture!==start.capture, `score/capture progresses (blue ${start.blueScore}->${end.blueScore}, red ${start.redScore}->${end.redScore}, cap ${start.capture.toFixed(2)}->${end.capture.toFixed(2)})`);
+ok(end.blueScore!==start.blueScore||end.redScore!==start.redScore, `combat score progresses (blue ${start.blueScore.toFixed(0)}->${end.blueScore.toFixed(0)}, red ${start.redScore.toFixed(0)}->${end.redScore.toFixed(0)})`);
+const obj = await page.evaluate(()=>({title:document.getElementById('objectiveTitle').textContent,text:document.getElementById('objectiveText').textContent}));
+ok(/SINK THE ENEMY FLEET|STRAIT IS CLEAR/.test(obj.title) && /afloat/.test(obj.text), `objective reads as a fleet action, not a capture (${JSON.stringify(obj)})`);
+ok(end.capture===0, `capture sector is gone (capture stays ${end.capture})`);
 // an idle bot is expected to be sunk; either it is still fighting, or the result screen must be shown correctly
 const res = await page.evaluate(()=>({mode:window.__iron.snap().mode,hidden:document.getElementById('result').hidden,title:document.getElementById('resultTitle').textContent,reason:document.getElementById('resultReason').textContent.trim()}));
 ok(res.mode==='battle' || (res.mode==='result' && !res.hidden && res.title.length>0 && res.reason.length>0), `battle coherent: still fighting, or a filled result screen is shown (${JSON.stringify(res)})`);
