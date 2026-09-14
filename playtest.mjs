@@ -59,9 +59,12 @@ await new Promise(r=>setTimeout(r,90000));
 const end = await page.evaluate(()=>window.__iron.snap());
 const dmgTaken = start.ships.reduce((a,x)=>a+x.hp,0) - end.ships.reduce((a,x)=>a+x.hp,0);
 ok(dmgTaken>0, `combat inflicts damage over 90s (total hp lost ${dmgTaken})`);
-ok(end.elapsed>start.elapsed+60, `battle clock ran ${(end.elapsed-start.elapsed).toFixed(1)}s of sim in 90s wall`);
+const ended = end.mode!=='battle';
+ok(ended || end.elapsed>start.elapsed+60, `battle clock ran ${(end.elapsed-start.elapsed).toFixed(1)}s of sim${ended?' before the idle bot was sunk':' in 90s wall'}`);
 ok(end.blueScore!==start.blueScore||end.redScore!==start.redScore||end.capture!==start.capture, `score/capture progresses (blue ${start.blueScore}->${end.blueScore}, red ${start.redScore}->${end.redScore}, cap ${start.capture.toFixed(2)}->${end.capture.toFixed(2)})`);
-ok(end.mode==='battle'||end.mode==='over', `battle still coherent (mode=${end.mode})`);
+// an idle bot is expected to be sunk; either it is still fighting, or the result screen must be shown correctly
+const res = await page.evaluate(()=>({mode:window.__iron.snap().mode,hidden:document.getElementById('result').hidden,title:document.getElementById('resultTitle').textContent,reason:document.getElementById('resultReason').textContent.trim()}));
+ok(res.mode==='battle' || (res.mode==='result' && !res.hidden && res.title.length>0 && res.reason.length>0), `battle coherent: still fighting, or a filled result screen is shown (${JSON.stringify(res)})`);
 ok(errs.length===0, `no console errors (${errs.length}) ${errs.slice(0,3).join(' | ')}`);
 console.log([...notes,...fails].join('\n'));
 console.log(fails.length? `\nRESULT: ${fails.length} FAILED / ${notes.length} passed` : `\nRESULT: ALL ${notes.length} CHECKS PASS`);
